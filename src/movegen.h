@@ -21,34 +21,19 @@ protected:
   MoveGenerator() {}
 };
 
-// Move generator for normal chess.
-class MoveGeneratorNormal : public MoveGenerator {
+template <Variant variant>
+class MoveGeneratorImpl : public MoveGenerator {
 public:
-  MoveGeneratorNormal(Board* board) : board_(board) {}
+  MoveGeneratorImpl(Board* board) : board_(board) {}
 
-  void GenerateMoves(MoveArray* move_array) final;
+  void GenerateMoves(MoveArray* move_array);
 
-  int CountMoves() final;
+  int CountMoves();
 
-  bool IsValidMove(const Move& move) final;
+  bool IsValidMove(const Move& move);
 
 private:
   Board* board_;
-};
-
-// Move generator for suicide chess.
-class MoveGeneratorSuicide : public MoveGenerator {
-public:
-  MoveGeneratorSuicide(const Board& board) : board_(board) {}
-
-  void GenerateMoves(MoveArray* move_array) final;
-
-  int CountMoves() final;
-
-  bool IsValidMove(const Move& move) final;
-
-private:
-  const Board& board_;
 };
 
 // Computes all possible attacks on the board by the attacking side.

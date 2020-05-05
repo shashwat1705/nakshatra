@@ -14,7 +14,15 @@ class MoveGenerator;
 
 class Book {
 public:
-  Book(Variant variant, const std::string& book_file);
+  virtual ~Book() {}
+
+  virtual Move GetBookMove(const Board& board) const = 0;
+};
+
+template <Variant variant>
+class BookImpl : public Book {
+public:
+  BookImpl(const std::string& book_file);
 
   Move GetBookMove(const Board& board) const;
 

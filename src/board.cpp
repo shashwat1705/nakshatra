@@ -16,10 +16,12 @@ const std::map<const Variant, const std::string> variant_fen_map = {
     {Variant::SUICIDE, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - -"}};
 } // namespace
 
-Board::Board(const Variant variant)
-    : Board(variant, variant_fen_map.at(variant)) {}
+template <Variant variant>
+BoardImpl<variant>::BoardImpl()
+    : BoardImpl<variant>(variant_fen_map.at(variant)) {}
 
-Board::Board(const Variant variant, const std::string& fen) {
+template <Variant variant>
+BoardImpl<variant>::BoardImpl(const std::string& fen) {
   castling_allowed_ = true;
   MoveStackEntry* top = move_stack_.Top();
   top->castle = 0xF;
@@ -51,7 +53,8 @@ Board::Board(const Variant variant, const std::string& fen) {
   top->zobrist_key = GenerateZobristKey();
 }
 
-void Board::MakeMove(const Move& move) {
+template <Variant variant>
+void BoardImpl<variant>::MakeMove(const Move& move) {
   move_stack_.Push();
 
   const int from_index = move.from_index();
@@ -191,7 +194,8 @@ void Board::MakeMove(const Move& move) {
   FlipSideToMove();
 }
 
-bool Board::UnmakeLastMove() {
+template <Variant variant>
+bool BoardImpl<variant>::UnmakeLastMove() {
   if (!move_stack_.Size()) {
     return false;
   }
@@ -240,7 +244,9 @@ bool Board::UnmakeLastMove() {
   return true;
 }
 
-bool Board::CanCastle(const Side side, const Piece piece_type) const {
+template <Variant variant>
+bool BoardImpl<variant>::CanCastle(const Side side,
+                                   const Piece piece_type) const {
   if (side == Side::NONE || (piece_type != KING && piece_type != QUEEN)) {
     throw std::runtime_error("Bad parameters");
   }
@@ -251,16 +257,19 @@ bool Board::CanCastle(const Side side, const Piece piece_type) const {
   return move_stack_.Top()->castle & (1U << shift);
 }
 
-bool Board::CanCastle(Piece piece_type) const {
+template <Variant variant>
+bool BoardImpl<variant>::CanCastle(Piece piece_type) const {
   return CanCastle(side_to_move_, piece_type);
 }
 
-std::string Board::ParseIntoFEN() const {
+template <Variant variant>
+std::string BoardImpl<variant>::ParseIntoFEN() const {
   const MoveStackEntry* top = move_stack_.Top();
   return FEN::MakeFEN(board_array_, side_to_move_, top->castle, top->ep_index);
 }
 
-void Board::DebugPrintBoard() const {
+template <Variant variant>
+void BoardImpl<variant>::DebugPrintBoard() const {
   using std::cout;
   using std::endl;
 
@@ -310,12 +319,14 @@ void Board::DebugPrintBoard() const {
   cout << "##### End Board Dump #####" << endl;
 }
 
-void Board::FlipSideToMove() {
+template <Variant variant>
+void BoardImpl<variant>::FlipSideToMove() {
   side_to_move_ = (side_to_move_ == Side::WHITE ? Side::BLACK : Side::WHITE);
   move_stack_.Top()->zobrist_key ^= zobrist::Turn();
 }
 
-U64 Board::GenerateZobristKey() {
+template <Variant variant>
+U64 BoardImpl<variant>::GenerateZobristKey() {
   U64 zkey = 0;
   for (int i = 0; i < BOARD_SIZE; ++i) {
     if (IsValidPiece(board_array_[i])) {
@@ -330,7 +341,8 @@ U64 Board::GenerateZobristKey() {
   return zkey;
 }
 
-void Board::PlacePiece(const int index, const Piece piece) {
+template <Variant variant>
+void BoardImpl<variant>::PlacePiece(const int index, const Piece piece) {
   board_array_[index] = piece;
   const U64 bit_mask = (1ULL << index);
   bitboard_sides_[SideIndex(PieceSide(piece))] |= bit_mask;
@@ -338,14 +350,16 @@ void Board::PlacePiece(const int index, const Piece piece) {
   move_stack_.Top()->zobrist_key ^= zobrist::Get(piece, index);
 }
 
-void Board::PlacePieceNoZ(const int index, const Piece piece) {
+template <Variant variant>
+void BoardImpl<variant>::PlacePieceNoZ(const int index, const Piece piece) {
   board_array_[index] = piece;
   const U64 bit_mask = (1ULL << index);
   bitboard_sides_[SideIndex(PieceSide(piece))] |= bit_mask;
   bitboard_pieces_[PieceIndex(piece)] |= bit_mask;
 }
 
-void Board::RemovePiece(const int index) {
+template <Variant variant>
+void BoardImpl<variant>::RemovePiece(const int index) {
   const Piece piece = board_array_[index];
   board_array_[index] = NULLPIECE;
   const U64 bit_mask = ~(1ULL << index);
@@ -354,10 +368,14 @@ void Board::RemovePiece(const int index) {
   move_stack_.Top()->zobrist_key ^= zobrist::Get(piece, index);
 }
 
-void Board::RemovePieceNoZ(const int index) {
+template <Variant variant>
+void BoardImpl<variant>::RemovePieceNoZ(const int index) {
   const Piece piece = board_array_[index];
   board_array_[index] = NULLPIECE;
   const U64 bit_mask = ~(1ULL << index);
   bitboard_sides_[SideIndex(PieceSide(piece))] &= bit_mask;
   bitboard_pieces_[PieceIndex(piece)] &= bit_mask;
 }
+
+template class BoardImpl<Variant::NORMAL>;
+template class BoardImpl<Variant::SUICIDE>;

@@ -7,14 +7,40 @@
 
 #include <string>
 
-// A Chess board that supports multiple variants.
 class Board {
 public:
+  virtual ~Board() {}
+
+  virtual void MakeMove(const Move& move) = 0;
+  virtual bool UnmakeLastMove() = 0;
+  virtual Side SideToMove() const = 0;
+  virtual int EnpassantTarget() const = 0;
+  virtual bool CanCastle(const Side side, const Piece piece_type) const = 0;
+  virtual bool CanCastle(const Piece piece_type) const = 0;
+  virtual Piece PieceAt(const int row, const int col) const = 0;
+  virtual Piece PieceAt(const int index) const = 0;
+  virtual U64 BitBoard() const = 0;
+  virtual U64 BitBoard(const Side side) const = 0;
+  virtual U64 BitBoard(const Piece piece) const = 0;
+  virtual int NumPieces(const Side side) const = 0;
+  virtual U64 ZobristKey() const = 0;
+  virtual std::string ParseIntoFEN() const = 0;
+  virtual int Ply() const = 0;
+  virtual void DebugPrintBoard() const = 0;
+  virtual void SetPiece(const int index, const Piece piece) = 0;
+  virtual void SetPlayerColor(const Side side) = 0;
+  virtual void FlipSideToMove() = 0;
+};
+
+// A Chess board that supports multiple variants.
+template <Variant variant>
+class BoardImpl : public Board {
+public:
   // Construct with the standard initial board position for the variant.
-  Board(const Variant variant);
+  BoardImpl();
 
   // Construct with given FEN for the variant.
-  Board(const Variant variant, const std::string& fen);
+  BoardImpl(const std::string& fen);
 
   // Moves piece on the board. Does not check for validity of move.
   void MakeMove(const Move& move);

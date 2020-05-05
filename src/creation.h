@@ -5,8 +5,6 @@
 #include "common.h"
 #include "egtb.h"
 #include "eval.h"
-#include "eval_normal.h"
-#include "eval_suicide.h"
 #include "extensions.h"
 #include "iterative_deepener.h"
 #include "lmr.h"
@@ -133,15 +131,15 @@ protected:
 
 class NormalPlayerBuilder : public PlayerBuilder {
 public:
-  void BuildBoard() override { board_.reset(new Board(Variant::NORMAL)); }
+  void BuildBoard() override { board_.reset(new BoardImpl<Variant::NORMAL>()); }
 
   void BuildBoard(const std::string& fen) override {
-    board_.reset(new Board(Variant::NORMAL, fen));
+    board_.reset(new BoardImpl<Variant::NORMAL>(fen));
   }
 
   void BuildMoveGenerator() override {
     assert(board_ != nullptr);
-    movegen_.reset(new MoveGeneratorNormal(board_.get()));
+    movegen_.reset(new MoveGeneratorImpl<Variant::NORMAL>(board_.get()));
   }
 
   void BuildEGTB() override {}
@@ -149,11 +147,12 @@ public:
   void BuildEvaluator() override {
     assert(board_ != nullptr);
     assert(movegen_ != nullptr);
-    eval_.reset(new EvalNormal(board_.get(), movegen_.get()));
+    eval_.reset(
+        new Eval<Variant::NORMAL>(board_.get(), movegen_.get(), nullptr));
   }
 
   void BuildBook() override {
-    book_.reset(new Book(Variant::NORMAL, "nbook.txt"));
+    book_.reset(new BookImpl<Variant::NORMAL>("nbook.txt"));
   }
 
   void AddExtensions() override {
@@ -179,15 +178,17 @@ public:
   SuicidePlayerBuilder(const bool enable_pns = true)
       : enable_pns_(enable_pns) {}
 
-  void BuildBoard() override { board_.reset(new Board(Variant::SUICIDE)); }
+  void BuildBoard() override {
+    board_.reset(new BoardImpl<Variant::SUICIDE>());
+  }
 
   void BuildBoard(const std::string& fen) override {
-    board_.reset(new Board(Variant::SUICIDE, fen));
+    board_.reset(new BoardImpl<Variant::SUICIDE>(fen));
   }
 
   void BuildMoveGenerator() override {
     assert(board_ != nullptr);
-    movegen_.reset(new MoveGeneratorSuicide(*board_.get()));
+    movegen_.reset(new MoveGeneratorImpl<Variant::SUICIDE>(board_.get()));
   }
 
   void BuildEGTB() override {
@@ -201,11 +202,12 @@ public:
   void BuildEvaluator() override {
     assert(board_ != nullptr);
     assert(movegen_ != nullptr);
-    eval_.reset(new EvalSuicide(board_.get(), movegen_.get(), egtb_.get()));
+    eval_.reset(
+        new Eval<Variant::SUICIDE>(board_.get(), movegen_.get(), egtb_.get()));
   }
 
   void BuildBook() override {
-    book_.reset(new Book(Variant::SUICIDE, "sbook.txt"));
+    book_.reset(new BookImpl<Variant::SUICIDE>("sbook.txt"));
   }
 
   void AddExtensions() override {

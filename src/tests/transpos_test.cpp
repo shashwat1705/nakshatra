@@ -6,8 +6,8 @@
 #include <gtest/gtest.h>
 
 TEST(TransposTest, VerifyEntries) {
-  Board board(Variant::SUICIDE,
-              "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - -");
+  BoardImpl<Variant::SUICIDE> board(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - -");
   TranspositionTable t(1024);
   U64 zkey = board.ZobristKey();
   EXPECT_EQ(NULL, t.Get(zkey));

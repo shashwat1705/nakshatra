@@ -1,7 +1,6 @@
 #include "board.h"
 #include "common.h"
 #include "eval.h"
-#include "eval_suicide.h"
 #include "movegen.h"
 #include "search_algorithm.h"
 #include "stats.h"
@@ -19,11 +18,12 @@ public:
 TEST_F(SearchAlgorithmTest, NegaScout) {
   // This position can be won by white at depth 7.
   const std::string board_str = "8/R7/8/8/8/8/8/7k w - -";
-  Board board(Variant::SUICIDE, board_str);
+  BoardImpl<Variant::SUICIDE> board(board_str);
 
-  std::unique_ptr<MoveGenerator> movegen(new MoveGeneratorSuicide(board));
+  std::unique_ptr<MoveGenerator> movegen(
+      new MoveGeneratorImpl<Variant::SUICIDE>(&board));
   std::unique_ptr<Evaluator> eval(
-      new EvalSuicide(&board, movegen.get(), nullptr));
+      new Eval<Variant::SUICIDE>(&board, movegen.get(), nullptr));
 
   TranspositionTable transpos(1U << 20); // 1 MB
   SearchAlgorithm search_algorithm(&board, movegen.get(), eval.get(), nullptr,

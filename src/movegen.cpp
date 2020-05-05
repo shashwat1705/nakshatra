@@ -369,14 +369,29 @@ U64 ComputeAttackMap(const Board& board, const Side attacker_side) {
   return attack_map;
 }
 
-void MoveGeneratorSuicide::GenerateMoves(MoveArray* move_array) {
-  switch (board_.SideToMove()) {
+template <Variant variant, Side side>
+void GenerateMoves3(Board* board, MoveArray* move_array) {
+  switch (variant) {
+  case Variant::SUICIDE:
+    GenerateMoves_Suicide<side>(*board, move_array);
+    break;
+  case Variant::NORMAL:
+    GenerateMoves_Normal<side>(board, move_array);
+    break;
+  default:
+    throw std::runtime_error("Unknown side");
+  }
+}
+
+template <Variant variant>
+void GenerateMoves2(Board* board, MoveArray* move_array) {
+  switch (board->SideToMove()) {
   case Side::BLACK:
-    GenerateMoves_Suicide<Side::BLACK>(board_, move_array);
+    GenerateMoves3<variant, Side::BLACK>(board, move_array);
     break;
 
   case Side::WHITE:
-    GenerateMoves_Suicide<Side::WHITE>(board_, move_array);
+    GenerateMoves3<variant, Side::WHITE>(board, move_array);
     break;
 
   default:
@@ -384,16 +399,22 @@ void MoveGeneratorSuicide::GenerateMoves(MoveArray* move_array) {
   }
 }
 
-int MoveGeneratorSuicide::CountMoves() {
+template <Variant variant>
+void MoveGeneratorImpl<variant>::GenerateMoves(MoveArray* move_array) {
+  GenerateMoves2<variant>(board_, move_array);
+}
+
+template <>
+int MoveGeneratorImpl<Variant::SUICIDE>::CountMoves() {
   int move_count = 0;
 
-  switch (board_.SideToMove()) {
+  switch (board_->SideToMove()) {
   case Side::BLACK:
-    GenerateMoves_Suicide<Side::BLACK>(board_, &move_count);
+    GenerateMoves_Suicide<Side::BLACK>(*board_, &move_count);
     break;
 
   case Side::WHITE:
-    GenerateMoves_Suicide<Side::WHITE>(board_, &move_count);
+    GenerateMoves_Suicide<Side::WHITE>(*board_, &move_count);
     break;
 
   default:
@@ -403,35 +424,19 @@ int MoveGeneratorSuicide::CountMoves() {
   return move_count;
 }
 
-bool MoveGeneratorSuicide::IsValidMove(const Move& move) {
+template <>
+int MoveGeneratorImpl<Variant::NORMAL>::CountMoves() {
   MoveArray move_array;
-  GenerateMoves(&move_array);
-  return move_array.Contains(move);
-}
-
-void MoveGeneratorNormal::GenerateMoves(MoveArray* move_array) {
-  switch (board_->SideToMove()) {
-  case Side::BLACK:
-    GenerateMoves_Normal<Side::BLACK>(board_, move_array);
-    break;
-
-  case Side::WHITE:
-    GenerateMoves_Normal<Side::WHITE>(board_, move_array);
-    break;
-
-  default:
-    throw std::runtime_error("Unknown side");
-  }
-}
-
-int MoveGeneratorNormal::CountMoves() {
-  MoveArray move_array;
-  GenerateMoves(&move_array);
+  GenerateMoves2<Variant::NORMAL>(board_, &move_array);
   return move_array.size();
 }
 
-bool MoveGeneratorNormal::IsValidMove(const Move& move) {
+template <Variant variant>
+bool MoveGeneratorImpl<variant>::IsValidMove(const Move& move) {
   MoveArray move_array;
-  GenerateMoves(&move_array);
+  GenerateMoves2<variant>(board_, &move_array);
   return move_array.Contains(move);
 }
+
+template class MoveGeneratorImpl<Variant::SUICIDE>;
+template class MoveGeneratorImpl<Variant::NORMAL>;

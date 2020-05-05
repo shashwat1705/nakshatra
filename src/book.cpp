@@ -18,27 +18,24 @@
 #include <time.h>
 #include <vector>
 
-Book::Book(Variant variant, const std::string& book_file)
+template <>
+BookImpl<Variant::SUICIDE>::BookImpl(const std::string& book_file)
     : book_file_(book_file) {
-  switch (variant) {
-  case Variant::NORMAL: {
-    Board board(Variant::NORMAL);
-    MoveGeneratorNormal movegen(&board);
-    LoadBook(&board, &movegen);
-    break;
-  }
-  case Variant::SUICIDE: {
-    Board board(Variant::SUICIDE);
-    MoveGeneratorSuicide movegen(board);
-    LoadBook(&board, &movegen);
-    break;
-  }
-  default:
-    throw std::runtime_error("Unknown variant.");
-  }
+  BoardImpl<Variant::SUICIDE> board;
+  MoveGeneratorImpl<Variant::SUICIDE> movegen(&board);
+  LoadBook(&board, &movegen);
+};
+
+template <>
+BookImpl<Variant::NORMAL>::BookImpl(const std::string& book_file)
+    : book_file_(book_file) {
+  BoardImpl<Variant::NORMAL> board;
+  MoveGeneratorImpl<Variant::NORMAL> movegen(&board);
+  LoadBook(&board, &movegen);
 }
 
-Move Book::GetBookMove(const Board& board) const {
+template <Variant variant>
+Move BookImpl<variant>::GetBookMove(const Board& board) const {
   std::string fen = board.ParseIntoFEN();
   if (const auto book_entry = book_.find(fen); book_entry != book_.end()) {
     srand(time(NULL));
@@ -55,7 +52,8 @@ Move Book::GetBookMove(const Board& board) const {
   return Move();
 }
 
-void Book::LoadBook(Board* board, MoveGenerator* movegen) {
+template <Variant variant>
+void BookImpl<variant>::LoadBook(Board* board, MoveGenerator* movegen) {
   std::ifstream ifs;
   ifs.open(book_file_, std::ios::in);
   std::stringstream ss;
@@ -94,3 +92,6 @@ void Book::LoadBook(Board* board, MoveGenerator* movegen) {
     }
   }
 }
+
+template class BookImpl<Variant::SUICIDE>;
+template class BookImpl<Variant::NORMAL>;

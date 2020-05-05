@@ -3,8 +3,6 @@
 #include "common.h"
 #include "creation.h"
 #include "eval.h"
-#include "eval_normal.h"
-#include "eval_suicide.h"
 #include "move.h"
 #include "move_array.h"
 #include "movegen.h"
@@ -295,10 +293,10 @@ void Executor::Execute(const string& command_str, vector<string>* response) {
     MoveGenerator* movegen = nullptr;
     switch (variant_) {
     case Variant::NORMAL:
-      movegen = new MoveGeneratorNormal(player_->GetBoard());
+      movegen = new MoveGeneratorImpl<Variant::NORMAL>(player_->GetBoard());
       break;
     case Variant::SUICIDE:
-      movegen = new MoveGeneratorSuicide(*player_->GetBoard());
+      movegen = new MoveGeneratorImpl<Variant::SUICIDE>(player_->GetBoard());
       break;
     }
     MoveArray move_array;

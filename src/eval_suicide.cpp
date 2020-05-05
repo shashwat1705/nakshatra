@@ -1,7 +1,7 @@
-#include "eval_suicide.h"
 #include "board.h"
 #include "common.h"
 #include "egtb.h"
+#include "eval.h"
 #include "movegen.h"
 #include "piece.h"
 #include "stopwatch.h"
@@ -25,46 +25,48 @@ constexpr int MOBILITY_FACTOR = 25;
 constexpr int PIECE_COUNT_FACTOR = -50;
 
 constexpr int TEMPO = 250;
-} // namespace
 
-int EvalSuicide::PieceValDifference() const {
-  const int white_val = PopCount(board_->BitBoard(KING)) * pv::KING +
-                        PopCount(board_->BitBoard(QUEEN)) * pv::QUEEN +
-                        PopCount(board_->BitBoard(PAWN)) * pv::PAWN +
-                        PopCount(board_->BitBoard(BISHOP)) * pv::BISHOP +
-                        PopCount(board_->BitBoard(KNIGHT)) * pv::KNIGHT +
-                        PopCount(board_->BitBoard(ROOK)) * pv::ROOK;
-  const int black_val = PopCount(board_->BitBoard(-KING)) * pv::KING +
-                        PopCount(board_->BitBoard(-QUEEN)) * pv::QUEEN +
-                        PopCount(board_->BitBoard(-PAWN)) * pv::PAWN +
-                        PopCount(board_->BitBoard(-BISHOP)) * pv::BISHOP +
-                        PopCount(board_->BitBoard(-KNIGHT)) * pv::KNIGHT +
-                        PopCount(board_->BitBoard(-ROOK)) * pv::ROOK;
+int PieceValDifference(Board* board) {
+  const int white_val = PopCount(board->BitBoard(KING)) * pv::KING +
+                        PopCount(board->BitBoard(QUEEN)) * pv::QUEEN +
+                        PopCount(board->BitBoard(PAWN)) * pv::PAWN +
+                        PopCount(board->BitBoard(BISHOP)) * pv::BISHOP +
+                        PopCount(board->BitBoard(KNIGHT)) * pv::KNIGHT +
+                        PopCount(board->BitBoard(ROOK)) * pv::ROOK;
+  const int black_val = PopCount(board->BitBoard(-KING)) * pv::KING +
+                        PopCount(board->BitBoard(-QUEEN)) * pv::QUEEN +
+                        PopCount(board->BitBoard(-PAWN)) * pv::PAWN +
+                        PopCount(board->BitBoard(-BISHOP)) * pv::BISHOP +
+                        PopCount(board->BitBoard(-KNIGHT)) * pv::KNIGHT +
+                        PopCount(board->BitBoard(-ROOK)) * pv::ROOK;
 
-  return (board_->SideToMove() == Side::WHITE) ? (white_val - black_val)
-                                               : (black_val - white_val);
+  return (board->SideToMove() == Side::WHITE) ? (white_val - black_val)
+                                              : (black_val - white_val);
 }
 
-int EvalSuicide::PieceCountDiff() const {
-  const int white_count = PopCount(board_->BitBoard(Side::WHITE));
-  const int black_count = PopCount(board_->BitBoard(Side::BLACK));
-  return (board_->SideToMove() == Side::WHITE) ? (white_count - black_count)
-                                               : (black_count - white_count);
+int PieceCountDiff(Board* board) {
+  const int white_count = PopCount(board->BitBoard(Side::WHITE));
+  const int black_count = PopCount(board->BitBoard(Side::BLACK));
+  return (board->SideToMove() == Side::WHITE) ? (white_count - black_count)
+                                              : (black_count - white_count);
 }
 
-bool EvalSuicide::RivalBishopsOnOppositeColoredSquares() const {
+bool RivalBishopsOnOppositeColoredSquares(Board* board) {
   static const U64 WHITE_SQUARES = 0xAA55AA55AA55AA55ULL;
   static const U64 BLACK_SQUARES = 0x55AA55AA55AA55AAULL;
 
-  const U64 white_bishop = board_->BitBoard(BISHOP);
-  const U64 black_bishop = board_->BitBoard(-BISHOP);
+  const U64 white_bishop = board->BitBoard(BISHOP);
+  const U64 black_bishop = board->BitBoard(-BISHOP);
 
   return ((white_bishop && black_bishop) &&
           (((white_bishop & WHITE_SQUARES) && (black_bishop & BLACK_SQUARES)) ||
            ((white_bishop & BLACK_SQUARES) && (black_bishop & WHITE_SQUARES))));
 }
 
-int EvalSuicide::Evaluate() {
+} // namespace
+
+template <>
+int Eval<Variant::SUICIDE>::Evaluate() {
   const Side side = board_->SideToMove();
   const int self_pieces = board_->NumPieces(side);
   const int opp_pieces = board_->NumPieces(OppositeSide(side));
@@ -76,7 +78,7 @@ int EvalSuicide::Evaluate() {
         return EGTBResult(*egtb_entry);
       }
     }
-    if (RivalBishopsOnOppositeColoredSquares()) {
+    if (RivalBishopsOnOppositeColoredSquares(board_)) {
       return DRAW;
     }
   }
@@ -115,17 +117,19 @@ int EvalSuicide::Evaluate() {
     return max_eval;
   }
 
-  return (self_moves - opp_moves) * MOBILITY_FACTOR + PieceValDifference() +
-         TEMPO + PIECE_COUNT_FACTOR * PieceCountDiff();
+  return (self_moves - opp_moves) * MOBILITY_FACTOR +
+         PieceValDifference(board_) + TEMPO +
+         PIECE_COUNT_FACTOR * PieceCountDiff(board_);
 }
 
-int EvalSuicide::Result() const {
+template <>
+int Eval<Variant::SUICIDE>::Result() const {
   const Side side = board_->SideToMove();
   const int self_pieces = board_->NumPieces(side);
   const int opp_pieces = board_->NumPieces(OppositeSide(side));
 
   if (self_pieces == 1 && opp_pieces == 1 &&
-      RivalBishopsOnOppositeColoredSquares()) {
+      RivalBishopsOnOppositeColoredSquares(board_)) {
     return DRAW;
   }
 
@@ -137,3 +141,5 @@ int EvalSuicide::Result() const {
 
   return UNKNOWN;
 }
+
+template class Eval<Variant::SUICIDE>;

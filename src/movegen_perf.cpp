@@ -36,11 +36,11 @@ int main(int argc, char** argv) {
   Board* board = NULL;
   MoveGenerator* movegen = NULL;
   if (argv[1][0] == 's' || argv[1][0] == 'S') {
-    board = new Board(Variant::SUICIDE);
-    movegen = new MoveGeneratorSuicide(*board);
+    board = new BoardImpl<Variant::SUICIDE>();
+    movegen = new MoveGeneratorImpl<Variant::SUICIDE>(board);
   } else {
-    board = new Board(Variant::NORMAL);
-    movegen = new MoveGeneratorNormal(board);
+    board = new BoardImpl<Variant::NORMAL>();
+    movegen = new MoveGeneratorImpl<Variant::NORMAL>(board);
   }
   depth = atoi(argv[2]);
 
